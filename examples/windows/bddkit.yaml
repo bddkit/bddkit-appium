@@ -1,0 +1,12 @@
+# A live Windows stand: Appium with the windows driver and WinAppDriver, on
+# the Windows machine itself (Developer Mode on).
+paths: [features]
+concurrency: 1
+resources:
+  api: {}
+  app:
+    calculator:
+      platform: windows
+      remote_url: ${APPIUM_URL:-http://localhost:4723}
+      app: Microsoft.WindowsCalculator_8wekyb3d8bbwe!App
+      locators: locators.yaml
