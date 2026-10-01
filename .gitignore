@@ -1,0 +1,9 @@
+/target
+# design artefacts stay local, never published with the plugin
+/docs/superpowers/
+/.idea/
+# local k3s stand, per machine
+/dev-stack.k8s.yaml
+# subagent-driven-development scratch
+/.superpowers/
+/examples/*/.bddkit/plugins.local.yaml

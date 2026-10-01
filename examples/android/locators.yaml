@@ -1,0 +1,6 @@
+app: ~App
+alert dialogs: "~Alert Dialogs"
+text entry dialog: "~Text Entry dialog"
+name field: "#io.appium.android.apis:id/username_edit"
+ok button: "#android:id/button1"
+animation: ~Animation

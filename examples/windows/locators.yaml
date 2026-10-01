@@ -1,0 +1,6 @@
+one: ~num1Button
+seven: ~num7Button
+plus: ~plusButton
+equals: ~equalButton
+clear: ~clearButton
+result: ~CalculatorResults

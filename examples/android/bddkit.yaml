@@ -1,0 +1,14 @@
+# A live Android stand: Appium with the uiautomator2 driver and one emulator
+# or device. APPIUM_URL defaults to a local server.
+paths: [features]
+concurrency: 1
+resources:
+  api: {}
+  app:
+    demos:
+      platform: android
+      remote_url: ${APPIUM_URL:-http://localhost:4723}
+      app: https://github.com/appium/android-apidemos/releases/download/v6.0.18/ApiDemos-debug.apk
+      locators: locators.yaml
+      capabilities:
+        appium:appPackage: io.appium.android.apis
