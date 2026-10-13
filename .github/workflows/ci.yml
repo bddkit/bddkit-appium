@@ -49,6 +49,6 @@ jobs:
       # branch: a red run here must mean this plugin broke. No device is
       # needed — e2e runs against the fake Appium in tests/common.
       - name: Install bddkit
-        run: cargo install bddkit --version 0.2.2 --locked
+        run: cargo install bddkit --version 0.3.0 --locked
       - name: End-to-end
         run: cargo test --locked --test e2e -- --nocapture
