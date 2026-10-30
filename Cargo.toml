@@ -1,6 +1,6 @@
 [package]
 name = "bddkit-appium"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.97"
 description = "Native app steps for the bddkit acceptance-testing tool: Android and Windows applications through Appium"
