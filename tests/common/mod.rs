@@ -112,8 +112,7 @@ pub fn start_stub(state: StubState) -> Stub {
 }
 
 fn reply(v: Value) -> (StatusCode, Json<Value>) {
-    let body: Map = [("value".to_string(), v)].into_iter().collect();
-    (StatusCode::OK, Json(Value::Object(body)))
+    (StatusCode::OK, Json([("value", v)].into_iter().collect()))
 }
 
 fn error(status: StatusCode, error: &str, message: &str) -> (StatusCode, Json<Value>) {
@@ -231,7 +230,6 @@ fn element_call(
     if st.session_gone {
         return error(StatusCode::NOT_FOUND, "invalid session id", "stub: gone");
     }
-    let st_malformed = st.malformed_displayed;
     let e = &mut st.elements[i];
     match (method.as_str(), rest) {
         ("POST", ["click"]) => reply(Value::Null),
@@ -245,7 +243,7 @@ fn element_call(
         }
         ("GET", ["text"]) => reply(json!(e.text)),
         ("GET", ["attribute", "Name"]) => reply(json!(e.name)),
-        ("GET", ["displayed"]) if st_malformed => reply(json!("yes")),
+        ("GET", ["displayed"]) if st.malformed_displayed => reply(json!("yes")),
         ("GET", ["displayed"]) => reply(json!(e.displayed)),
         _ => error(
             StatusCode::NOT_FOUND,

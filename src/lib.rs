@@ -30,9 +30,10 @@ fn input(p: *const c_char) -> String {
         return String::new();
     }
     // SAFETY: `p` is not null (checked above). Every caller passes the request
-    // pointer of the export it runs in, and the ABI (plugin-authoring.md,
-    // `bddkit_free_string`) makes that a NUL-terminated string the host keeps
-    // valid for the whole call. The text is copied before this function returns.
+    // pointer of the export it runs in, a C string by the ABI's `*const c_char`.
+    // It belongs to the host and is valid for the duration of the call
+    // (plugin-authoring.md, `bddkit_free_string`), and nothing here writes to it.
+    // The text is copied before this function returns.
     unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned()
 }
 
