@@ -13,16 +13,14 @@ use std::collections::BTreeMap;
 use std::ffi::{CStr, CString, c_char};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 /// Outside `guard`, and safe there only because it provably cannot panic:
-/// `CString::new` returns a `Result` and the fallback literal has no interior
-/// NUL. Anything added here must keep that property.
+/// `CString::new` returns a `Result` and the fallback is a C string literal the
+/// compiler has checked. Anything added here must keep that property.
 fn out(s: String) -> *mut c_char {
     CString::new(s)
-        .unwrap_or_else(|_| {
-            CString::new("{\"ok\":false,\"error\":\"NUL in reply\"}").expect("literal")
-        })
+        .unwrap_or_else(|_| c"{\"ok\":false,\"error\":\"NUL in reply\"}".to_owned())
         .into_raw()
 }
 
@@ -31,6 +29,10 @@ fn input(p: *const c_char) -> String {
     if p.is_null() {
         return String::new();
     }
+    // SAFETY: `p` is not null (checked above). Every caller passes the request
+    // pointer of the export it runs in, and the ABI (plugin-authoring.md,
+    // `bddkit_free_string`) makes that a NUL-terminated string the host keeps
+    // valid for the whole call. The text is copied before this function returns.
     unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned()
 }
 
@@ -75,6 +77,9 @@ pub extern "C" fn bddkit_manifest() -> *mut c_char {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bddkit_free_string(s: *mut c_char) {
     if !s.is_null() {
+        // SAFETY: `s` is not null (checked above), and this function's contract
+        // says it is a reply not yet freed. Every reply comes from
+        // `CString::into_raw` in `out`, which is what `from_raw` requires.
         drop(unsafe { CString::from_raw(s) });
     }
 }
@@ -102,13 +107,21 @@ pub extern "C" fn bddkit_validate_config(request: *const c_char) -> *mut c_char 
 static INSTANCES: Mutex<BTreeMap<u64, Arc<instance::Instance>>> = Mutex::new(BTreeMap::new());
 static NEXT_HANDLE: AtomicU64 = AtomicU64::new(1);
 
+#[expect(
+    clippy::expect_used,
+    reason = "a poisoned table panics on purpose: the exports call this inside `guard`, which turns it into a \"the plugin panicked\" reply"
+)]
+fn instances() -> MutexGuard<'static, BTreeMap<u64, Arc<instance::Instance>>> {
+    INSTANCES.lock().expect("instances")
+}
+
 fn take_instance(handle: u64) -> Option<Arc<instance::Instance>> {
-    INSTANCES.lock().expect("instances").get(&handle).cloned()
+    instances().get(&handle).cloned()
 }
 
 /// For tests: how many handles are live.
 pub fn live_instances() -> usize {
-    INSTANCES.lock().expect("instances").len()
+    instances().len()
 }
 
 /// Stateless: `GET /status`, nothing else.
@@ -135,10 +148,7 @@ pub extern "C" fn bddkit_init_instance(request: *const c_char) -> *mut c_char {
             Err(error) => return reply::err(error),
         };
         let handle = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
-        INSTANCES
-            .lock()
-            .expect("instances")
-            .insert(handle, Arc::new(instance));
+        instances().insert(handle, Arc::new(instance));
         serde_json::json!({"ok": true, "handle": handle}).to_string()
     })
 }
@@ -184,7 +194,7 @@ pub extern "C" fn bddkit_reset_scenario(handle: u64) -> *mut c_char {
 #[unsafe(no_mangle)]
 pub extern "C" fn bddkit_drop_instance(handle: u64) -> *mut c_char {
     guard("envelope", move || {
-        let removed = INSTANCES.lock().expect("instances").remove(&handle);
+        let removed = instances().remove(&handle);
         reply::envelope(
             removed
                 .ok_or("unknown handle".to_string())

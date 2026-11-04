@@ -3,6 +3,13 @@
 //! when no `bddkit` binary is found, unless `CI` is set: there a missing
 //! binary is a failure, since a green run that tested nothing is worse.
 
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "`allow-*-in-tests` covers only `#[test]` functions, not the helpers here"
+)]
+
 mod common;
 
 use std::path::{Path, PathBuf};

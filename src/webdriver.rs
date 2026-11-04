@@ -144,7 +144,7 @@ impl Driver {
             // ponytail: one global timeout; a first Android session installs the
             // server and the app and can take minutes. Per-call timeouts if a hung
             // find ever needs to fail faster than this.
-            .timeout_global(Some(Duration::from_secs(300)))
+            .timeout_global(Some(Duration::from_mins(5)))
             .build();
         Self {
             agent: config.new_agent(),
@@ -285,8 +285,8 @@ impl Session {
         format!("session/{}/{tail}", self.id)
     }
 
-    fn post(&self, tail: &str, body: Value) -> Result<Value, Error> {
-        self.driver.call("POST", &self.path(tail), Some(&body))
+    fn post(&self, tail: &str, body: &Value) -> Result<Value, Error> {
+        self.driver.call("POST", &self.path(tail), Some(body))
     }
 
     fn get(&self, tail: &str) -> Result<Value, Error> {
@@ -295,7 +295,7 @@ impl Session {
 
     /// `Ok(None)` on `no such element`; every other error is passed up.
     pub fn find(&self, using: Strategy, value: &str) -> Result<Option<Element<'_>>, Error> {
-        match self.post("element", json!({"using": using.wire(), "value": value})) {
+        match self.post("element", &json!({"using": using.wire(), "value": value})) {
             Ok(v) => Ok(Some(Element {
                 session: self,
                 id: element_id(&v)?,
@@ -306,8 +306,8 @@ impl Session {
     }
 
     /// `mobile: …` / `windows: …` extensions travel as a script name.
-    pub fn execute(&self, script: &str, args: Vec<Value>) -> Result<Value, Error> {
-        self.post("execute/sync", json!({"script": script, "args": args}))
+    pub fn execute(&self, script: &str, args: &[Value]) -> Result<Value, Error> {
+        self.post("execute/sync", &json!({"script": script, "args": args}))
     }
 
     pub fn screenshot(&self) -> Result<Vec<u8>, Error> {
@@ -335,16 +335,16 @@ impl Element<'_> {
     }
 
     pub fn click(&self) -> Result<(), Error> {
-        self.session.post(&self.tail("click"), json!({})).map(drop)
+        self.session.post(&self.tail("click"), &json!({})).map(drop)
     }
 
     pub fn clear(&self) -> Result<(), Error> {
-        self.session.post(&self.tail("clear"), json!({})).map(drop)
+        self.session.post(&self.tail("clear"), &json!({})).map(drop)
     }
 
     pub fn send_keys(&self, text: &str) -> Result<(), Error> {
         self.session
-            .post(&self.tail("value"), json!({"text": text}))
+            .post(&self.tail("value"), &json!({"text": text}))
             .map(drop)
     }
 
