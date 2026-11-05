@@ -112,10 +112,10 @@ pub fn start_stub(state: StubState) -> Stub {
 }
 
 fn reply(v: Value) -> (StatusCode, Json<Value>) {
-    (StatusCode::OK, Json(json!({"value": v})))
+    (StatusCode::OK, Json([("value", v)].into_iter().collect()))
 }
 
-fn error(status: StatusCode, error: &str, message: String) -> (StatusCode, Json<Value>) {
+fn error(status: StatusCode, error: &str, message: &str) -> (StatusCode, Json<Value>) {
     (
         status,
         Json(json!({"value": {"error": error, "message": message, "stacktrace": ""}})),
@@ -152,7 +152,7 @@ async fn handle(
                     None => error(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         "unknown error",
-                        "stub: no package".into(),
+                        "stub: no package",
                     ),
                 },
                 _ => reply(Value::Null),
@@ -165,7 +165,7 @@ async fn handle(
             error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "unknown error",
-                "Timed out after 10071ms waiting for the root AccessibilityNodeInfo".into(),
+                "Timed out after 10071ms waiting for the root AccessibilityNodeInfo",
             )
         }
         ("POST", ["session", "s1", "element"]) => {
@@ -178,74 +178,77 @@ async fn handle(
             {
                 Some(i) if st.elements[i].absent_for > 0 => {
                     st.elements[i].absent_for -= 1;
-                    error(
-                        StatusCode::NOT_FOUND,
-                        "no such element",
-                        "stub: not yet".into(),
-                    )
+                    error(StatusCode::NOT_FOUND, "no such element", "stub: not yet")
                 }
                 Some(i) => reply(json!({ELEMENT_KEY: format!("e{i}")})),
                 None => error(
                     StatusCode::NOT_FOUND,
                     "no such element",
-                    format!("nothing matches {using} {value}"),
+                    &format!("nothing matches {using} {value}"),
                 ),
             }
         }
         (_, ["session", "s1", "element", id, rest @ ..]) => {
-            let Some(i) = id.strip_prefix('e').and_then(|n| n.parse::<usize>().ok()) else {
-                return error(StatusCode::NOT_FOUND, "no such element", id.to_string());
-            };
-            if method == Method::GET && st.stale_first > 0 {
-                st.stale_first -= 1;
-                return error(
-                    StatusCode::NOT_FOUND,
-                    "stale element reference",
-                    format!("e{i}"),
-                );
-            }
-            if method == Method::GET && st.busy_reads > 0 {
-                st.busy_reads -= 1;
-                return error(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "unknown error",
-                    "Timed out after 10071ms waiting for the root AccessibilityNodeInfo".into(),
-                );
-            }
-            if st.session_gone {
-                return error(
-                    StatusCode::NOT_FOUND,
-                    "invalid session id",
-                    "stub: gone".into(),
-                );
-            }
-            let st_malformed = st.malformed_displayed;
-            let e = &mut st.elements[i];
-            match (method.as_str(), rest) {
-                ("POST", ["click"]) => reply(Value::Null),
-                ("POST", ["clear"]) => {
-                    e.text.clear();
-                    reply(Value::Null)
-                }
-                ("POST", ["value"]) => {
-                    e.text.push_str(req["text"].as_str().unwrap_or(""));
-                    reply(Value::Null)
-                }
-                ("GET", ["text"]) => reply(json!(e.text)),
-                ("GET", ["attribute", "Name"]) => reply(json!(e.name)),
-                ("GET", ["displayed"]) if st_malformed => reply(json!("yes")),
-                ("GET", ["displayed"]) => reply(json!(e.displayed)),
-                _ => error(
-                    StatusCode::NOT_FOUND,
-                    "unknown command",
-                    format!("{method} {path}"),
-                ),
-            }
+            element_call(&mut st, &method, &path, id, rest, &req)
         }
         _ => error(
             StatusCode::NOT_FOUND,
             "unknown command",
-            format!("{method} {path}"),
+            &format!("{method} {path}"),
+        ),
+    }
+}
+
+/// `/session/s1/element/<id>/<rest>`: the reads and actions on a found element.
+fn element_call(
+    st: &mut StubState,
+    method: &Method,
+    path: &str,
+    id: &str,
+    rest: &[&str],
+    req: &Value,
+) -> (StatusCode, Json<Value>) {
+    let Some(i) = id.strip_prefix('e').and_then(|n| n.parse::<usize>().ok()) else {
+        return error(StatusCode::NOT_FOUND, "no such element", id);
+    };
+    if *method == Method::GET && st.stale_first > 0 {
+        st.stale_first -= 1;
+        return error(
+            StatusCode::NOT_FOUND,
+            "stale element reference",
+            &format!("e{i}"),
+        );
+    }
+    if *method == Method::GET && st.busy_reads > 0 {
+        st.busy_reads -= 1;
+        return error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "unknown error",
+            "Timed out after 10071ms waiting for the root AccessibilityNodeInfo",
+        );
+    }
+    if st.session_gone {
+        return error(StatusCode::NOT_FOUND, "invalid session id", "stub: gone");
+    }
+    let e = &mut st.elements[i];
+    match (method.as_str(), rest) {
+        ("POST", ["click"]) => reply(Value::Null),
+        ("POST", ["clear"]) => {
+            e.text.clear();
+            reply(Value::Null)
+        }
+        ("POST", ["value"]) => {
+            e.text.push_str(req["text"].as_str().unwrap_or(""));
+            reply(Value::Null)
+        }
+        ("GET", ["text"]) => reply(json!(e.text)),
+        ("GET", ["attribute", "Name"]) => reply(json!(e.name)),
+        ("GET", ["displayed"]) if st.malformed_displayed => reply(json!("yes")),
+        ("GET", ["displayed"]) => reply(json!(e.displayed)),
+        _ => error(
+            StatusCode::NOT_FOUND,
+            "unknown command",
+            &format!("{method} {path}"),
         ),
     }
 }
@@ -253,9 +256,13 @@ async fn handle(
 /// Reads a reply the plugin allocated, frees it through the plugin, parses it.
 pub fn take(ptr: *mut c_char) -> Value {
     assert!(!ptr.is_null(), "the plugin returned NULL");
+    // SAFETY: `ptr` is not null (asserted above), and an export's reply is a
+    // NUL-terminated string from `CString::into_raw`, not freed until below.
     let text = unsafe { CStr::from_ptr(ptr) }
         .to_string_lossy()
         .into_owned();
+    // SAFETY: `ptr` is a reply of this library, freed once here. `text` is an
+    // owned copy, and nothing reads `ptr` after this.
     unsafe { bddkit_appium::bddkit_free_string(ptr) };
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("not JSON ({e}): {text}"))
 }
@@ -266,7 +273,9 @@ pub fn envelope(f: extern "C" fn(*const c_char) -> *mut c_char, request: &Value)
 }
 
 pub fn instance_request(name: &str, config: Value) -> Value {
-    json!({"group": "app", "instance": name, "config": config, "options": {}})
+    let mut request = json!({"group": "app", "instance": name, "options": {}});
+    request["config"] = config;
+    request
 }
 
 pub fn write_locators(dir: &Path, yaml: &str) -> String {

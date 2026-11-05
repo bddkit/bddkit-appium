@@ -80,7 +80,7 @@ impl Instance {
 
     fn extension(&self, script: &str, args: Value) -> Result<(), String> {
         self.session
-            .execute(script, vec![args])
+            .execute(script, &[args])
             .map(drop)
             .map_err(|e| format!("{script}: {e}"))
     }
@@ -153,7 +153,7 @@ fn android_app_id(session: &Session, caps: &Value) -> Result<String, String> {
             return Ok(id.to_string());
         }
     }
-    match session.execute("mobile: getCurrentPackage", vec![]) {
+    match session.execute("mobile: getCurrentPackage", &[]) {
         Ok(Value::String(id)) if !id.is_empty() => Ok(id),
         got => {
             let got = match got {

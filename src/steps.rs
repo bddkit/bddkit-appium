@@ -45,12 +45,12 @@ pub const STEPS: &[Step] = &[
         description: "waits for the element, then saves its text into a variable",
     },
     Step {
-        pattern: r#"^I capture the screen$"#,
+        pattern: r"^I capture the screen$",
         kind: "action",
         description: "writes a PNG of the screen into the artifacts directory",
     },
     Step {
-        pattern: r#"^I dump the screen$"#,
+        pattern: r"^I dump the screen$",
         kind: "action",
         description: "writes a PNG and the UI tree (XML) into the artifacts directory: what every element is called",
     },
@@ -136,7 +136,7 @@ pub fn route(instance: &Instance, index: u32, req: &Request) -> String {
     }
     match run(instance, index, req) {
         Ok(vars) if vars.is_empty() => reply::passed(),
-        Ok(vars) => reply::passed_with(Value::Object(vars)),
+        Ok(vars) => reply::passed_with(&Value::Object(vars)),
         Err(fail) => {
             let diagnostics = evidence(instance, req);
             match fail {
@@ -257,7 +257,7 @@ fn run(instance: &Instance, index: u32, req: &Request) -> Result<Map<String, Val
         2 => act(instance, &arg(0))?.clear()?,
         3 => {
             let (script, args) = key_command(instance.config.platform, &arg(0)).map_err(fatal)?;
-            s.execute(script, vec![args])?;
+            s.execute(script, &[args])?;
         }
         4 => {
             let text = act(instance, &arg(0))?.text()?;

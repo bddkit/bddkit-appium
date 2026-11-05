@@ -2,6 +2,13 @@
 //! device; what it pins is the plugin's side of the protocol and its replies
 //! to the host.
 
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "`allow-*-in-tests` covers only `#[test]` functions, not the helpers here"
+)]
+
 mod common;
 
 use std::ffi::CString;
@@ -275,7 +282,7 @@ fn list_steps_is_the_ten_step_vocabulary_in_the_app_group() {
 /// Loaded together, a step matching both would stop the run as ambiguous.
 const BROWSER_STEPS: &[&str] = &[
     r#"I read the "x" element text as "y""#,
-    r#"I take a screenshot"#,
+    r"I take a screenshot",
     r#"the "x" element should be visible"#,
     r#"the "x" element should not be visible"#,
     r#"I press "x""#,
