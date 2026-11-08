@@ -51,7 +51,7 @@ jobs:
       - run: cargo test --locked --lib --test stub
 
   e2e:
-    name: e2e against bddkit ${{ env.HOST_TAG }} (${{ matrix.os }})
+    name: e2e against bddkit (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
