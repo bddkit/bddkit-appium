@@ -65,7 +65,7 @@ pub fn manifest_json() -> String {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn bddkit_abi_version() -> u32 {
-    3
+    4
 }
 
 #[unsafe(no_mangle)]
@@ -214,6 +214,12 @@ mod tests {
             declared["abi"],
             crate::bddkit_abi_version(),
             "bddkit-plugin.json must name the ABI bddkit_abi_version() returns"
+        );
+        let manifest: serde_json::Value =
+            serde_json::from_str(&crate::manifest_json()).expect("manifest is JSON");
+        assert_eq!(
+            declared["groups"], manifest["groups"],
+            "bddkit-plugin.json must name the groups the manifest claims"
         );
     }
 
