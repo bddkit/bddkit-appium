@@ -2,7 +2,7 @@
 
 Agent orientation for this plugin repository.
 
-`bddkit-appium` is a plugin for `bddkit`, a Gherkin-based acceptance-testing tool in Rust: this plugin drives native Android and Windows applications through an Appium server. It is a `cdylib` loaded by the host at run time; resource group: `app`; plugin ABI 3 (`bddkit-plugin.json`). `README.md` is the tester-facing description of the steps.
+`bddkit-appium` is a plugin for `bddkit`, a Gherkin-based acceptance-testing tool in Rust: this plugin drives native Android and Windows applications through an Appium server. It is a `cdylib` loaded by the host at run time; resource group: `app`; plugin ABI 4 (`bddkit-plugin.json`). `README.md` is the tester-facing description of the steps.
 
 ## Where the contract lives
 
