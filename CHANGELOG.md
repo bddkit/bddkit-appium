@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/bddkit/bddkit-appium/compare/v0.3.0...v0.4.0) - 2026-11-09
+
+### Added
+
+- [**breaking**] move to plugin ABI 4
+
+### Other
+
+- cite only what the plugin contract says in a SAFETY comment
+- enforce the code health limits in Clippy and CI
+- add CLAUDE.md for coding agents
+
 ## [0.3.0](https://github.com/bddkit/bddkit-appium/compare/v0.2.1...v0.3.0) - 2026-10-30
 
 ### Added
