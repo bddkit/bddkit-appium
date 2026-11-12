@@ -3,7 +3,6 @@
 paths: [features]
 concurrency: 1
 resources:
-  api: {}
   app:
     demos:
       platform: android

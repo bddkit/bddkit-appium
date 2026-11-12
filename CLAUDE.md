@@ -15,18 +15,18 @@ The authoring contract is `docs/plugin-authoring.md` in the `bddkit/bddkit` repo
 - **Never print to stdout.** The host composes a file's output atomically; a plugin line lands inside another worker's failure dump. Evidence goes back as `diagnostics` in the reply.
 - **`<<null>>` arrives as two real NUL bytes inside a `String`** after the plugin's own JSON parse, so `CString::new(arg)` fails on it. Handle it before building a C string.
 - **Instance config is plain scalars, sequences and mappings.** A YAML tag in a `resources.<group>` body does not parse.
-- **The plugin is written against `docs/plugin-authoring.md` and must never need the host's source.** `Manifest`, `StepSpec` and `DispatchResult` are a hand-copied mirror of the host's types; the document is the only thing keeping them in step.
+- **The plugin is written against `docs/plugin-authoring.md` and must never need the host's source.** The manifest, the step list and every reply are JSON written by hand (`serde_json::json!`) to the shapes the document describes; the document is the only thing keeping them in step with the host.
 
 ## Layout
 
-`src/lib.rs` the exports and guard · `config.rs` instance config · `instance.rs` per-instance state · `steps.rs` step declarations and dispatch · `webdriver.rs` the Appium session · `locators.rs` the per-instance YAML map of element name to locator · `reply.rs` reply shapes · `tests/stub.rs` an Appium stub, `tests/e2e.rs` a real server (`tests/common/`) · `examples/android`, `examples/windows`.
+`src/lib.rs` the exports and guard · `config.rs` instance config · `instance.rs` per-instance state · `steps.rs` step declarations and dispatch · `webdriver.rs` the Appium session · `locators.rs` the per-instance YAML map of element name to locator · `reply.rs` reply shapes · `tests/stub.rs` an Appium stub, `tests/e2e.rs` a real `bddkit` against the fake Appium server of `tests/common/` · `examples/android`, `examples/windows`.
 
 ## Dev workflow
 
 - Edition 2024, `rust-version` 1.97 (CI pins the toolchain). Dependency versions are not bumped without being asked.
 - `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` must be clean.
 - Code health limits, enforced in CI: a function has at most 100 lines as Clippy counts them (no blank lines or comments), blocks nest at most 5 levels (Clippy also counts `mod`, `impl` and `fn`), and a Rust, `.feature` or YAML file (workflows aside) has at most 1,000 lines. The policy is `[lints.clippy]` in `Cargo.toml` and `clippy.toml`; the reasoning is bddkit/bddkit#200. An exception is `#[expect(..., reason = "...")]`, with a link to a tracking issue when it is a function over the limit. Helpers in `tests/*.rs` are the one standing exception: those files allow `expect_used`, `unwrap_used` and `panic` at the top.
-- `cargo test --locked --lib --test stub` is the fast suite (no Appium). `cargo test --locked --test e2e -- --nocapture` needs a running Appium server and a device or emulator.
+- `cargo test --locked --lib --test stub` is the fast suite (no Appium). `cargo test --locked --test e2e -- --nocapture` runs a real `bddkit` (`BDDKIT_BIN`, then `PATH`, then a sibling `../bddkit` build) against the fake Appium server; it needs no Appium and no device. Only `examples/` needs a live stand.
 - The resource group is `app`, not `appium`.
 - Everything in the repository is English: code, comments, error messages, documentation. Conversational replies follow the operator's language.
 - Markdown: never soft-wrap prose; one paragraph or list item is one physical line.
