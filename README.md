@@ -1,6 +1,6 @@
 # bddkit-appium
 
-A `bddkit` plugin that drives native Android and Windows applications through an Appium server, so one scenario can do a UI action, check the API effect it caused and read the DB row it wrote — with the steps `bddkit` already provides. Resource group: `app`.
+A `bddkit` plugin that drives native Android and Windows applications through an Appium server, so one scenario can do a UI action, check the API effect it caused and read the DB row it wrote — with the steps of the `api` and `db` plugins. Resource group: `app`.
 
 ## Building
 
@@ -12,7 +12,7 @@ The library is written to `target/release/`.
 
 ## Installing
 
-Tested against `bddkit` 0.2.2 (the version `ci.yml` pins for the end-to-end jobs). Either `bddkit plugin install bddkit/bddkit-appium`, or point a plugin lock file at the built library. Where bddkit looks for lock files (layers, `plugins.local.yaml`) is in bddkit's `docs/plugin-authoring.md`, section 7.
+Tested against `bddkit` 0.5.0 (the version `ci.yml` pins for the end-to-end jobs). Either `bddkit plugin install appium` (or `bddkit plugin install` with no name, for a config with `resources.app`), or point a plugin lock file at the built library. Where bddkit looks for lock files (layers, `plugins.local.yaml`) is in bddkit's `docs/plugin-authoring.md`, section 7.
 
 ```yaml
 # .bddkit/plugins.yaml
@@ -31,7 +31,6 @@ Declare one or more named instances under `resources.app` in the ordinary `bddki
 
 ```yaml
 resources:
-  api: {}
   app:
     shop-android:
       platform: android
