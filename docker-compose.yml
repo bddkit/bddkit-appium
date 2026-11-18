@@ -1,0 +1,25 @@
+# An Android stand for examples/android: an emulator with Appium. Needs a
+# Linux host with KVM and about 5 GiB of memory (less was OOM-killed).
+#   docker compose up -d --wait
+#   cd examples/android && APPIUM_URL=http://localhost:4723 bddkit run
+# Appium on :4723, the emulator's web VNC on http://localhost:6080.
+services:
+  android:
+    image: budtmo/docker-android:emulator_14.0
+    privileged: true
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      EMULATOR_DEVICE: "Nexus 5"
+      APPIUM: "true"
+      WEB_VNC: "true"
+    ports:
+      - "4723:4723"
+      - "6080:6080"
+    healthcheck:
+      # The emulator has finished booting once Android sets this property.
+      test: ["CMD-SHELL", "adb shell getprop sys.boot_completed | grep -q 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 60s
